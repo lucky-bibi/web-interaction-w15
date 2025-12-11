@@ -3,1270 +3,621 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Emotional Labor Consultant - Customer Service Simulator</title>
+    <title>감정노동 상담사 - 배달의족속</title>
     <style>
         /* ===== GLOBAL STYLES ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            overflow: hidden;
+            font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+            background-color: #e9ecef;
             height: 100vh;
+            overflow: hidden;
+            user-select: none;
         }
 
-        /* ===== MAIN CONTAINER - 3 COLUMN GRID LAYOUT ===== */
+        /* ===== UTILITY ===== */
+        .hidden { display: none !important; }
+        .flex-center { display: flex; justify-content: center; align-items: center; }
+
+        /* ===== ENTRY SCREEN (START PAGE) ===== */
+        #entryScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #2c3e50, #4ca1af);
+            z-index: 2000;
+            flex-direction: column;
+            color: white;
+            text-align: center;
+        }
+        .title-box { margin-bottom: 50px; animation: fadeInDown 1s; }
+        .game-title { font-size: 3rem; font-weight: bold; margin-bottom: 10px; }
+        .game-subtitle { font-size: 1.2rem; opacity: 0.8; }
+        
+        .difficulty-container { display: flex; gap: 20px; animation: fadeInUp 1s; }
+        .diff-btn {
+            padding: 20px 40px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .diff-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-5px); }
+        .diff-btn.easy { border-color: #2ecc71; }
+        .diff-btn.normal { border-color: #f1c40f; }
+        .diff-btn.hard { border-color: #e74c3c; }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ===== MAIN GAME LAYOUT ===== */
         .container {
             display: grid;
-            grid-template-columns: 280px 1fr 320px; /* Left sidebar | Center chat | Right dashboard */
+            grid-template-columns: 280px 1fr 320px;
             height: 100vh;
-            max-width: 1800px;
+            max-width: 1920px;
             margin: 0 auto;
-            background: #ffffff;
+            background: #fff;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
 
-        /* ===== LEFT SIDEBAR - INCOMING CHAT LIST ===== */
-        .sidebar-left {
-            background: #2c2c3e;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #444;
-        }
-
-        .sidebar-header {
-            padding: 20px;
-            background: #1e1e2e;
-            border-bottom: 1px solid #444;
-        }
-
-        .sidebar-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .sidebar-subtitle {
-            font-size: 12px;
-            color: #aaa;
-        }
-
-        .chat-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px 0;
-        }
-
-        /* Individual chat item in sidebar */
-        .chat-item {
-            padding: 15px 20px;
-            cursor: pointer;
-            border-left: 4px solid transparent;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        .chat-item:hover {
-            background: rgba(255,255,255,0.05);
-        }
-
-        .chat-item.active {
-            background: rgba(255,255,255,0.1);
-            border-left-color: #4a9eff;
-        }
-
-        .chat-item.has-unread {
-            background: rgba(255,100,100,0.1);
-            border-left-color: #ff6464;
-        }
-
-        .chat-item-name {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .chat-item-preview {
-            font-size: 12px;
-            color: #aaa;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Patience bar for each customer */
-        .patience-bar-container {
-            margin-top: 8px;
-            height: 4px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .patience-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #ff6464 0%, #ffaa64 50%, #64ff64 100%);
-            transition: width 0.3s ease;
-            border-radius: 2px;
-        }
-
-        .unread-badge {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: #ff4444;
-            color: white;
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-weight: bold;
-        }
-
-        /* ===== CENTER - MAIN CHAT WINDOW ===== */
-        .chat-main {
-            display: flex;
-            flex-direction: column;
-            background: #fafafa;
-        }
-
-        .chat-header {
-            background: #ffffff;
-            padding: 20px 30px;
-            border-bottom: 2px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .chat-header-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .chat-header-status {
-            font-size: 12px;
-            color: #666;
-            background: #e8f5e9;
-            padding: 4px 12px;
-            border-radius: 12px;
-        }
-
-        /* Chat messages area */
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px 30px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        /* Chat bubble styles */
-        .chat-bubble {
-            max-width: 60%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 14px;
-            line-height: 1.5;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            position: relative;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Customer messages (left side) */
-        .chat-bubble.customer {
-            align-self: flex-start;
-            background: #ffffff;
-            color: #333;
-            border-bottom-left-radius: 4px;
-        }
-
-        .chat-bubble.customer.angry {
-            background: #ffe0e0;
-            border: 2px solid #ff6464;
-        }
-
-        /* Agent messages (right side - your responses) */
-        .chat-bubble.agent {
-            align-self: flex-end;
-            background: #4a9eff;
-            color: #ffffff;
-            border-bottom-right-radius: 4px;
-        }
-
-        /* System messages (centered) */
-        .chat-bubble.system {
-            align-self: center;
-            background: #f0f0f0;
-            color: #666;
-            font-size: 12px;
-            padding: 8px 12px;
-            max-width: 80%;
-            text-align: center;
-        }
-
-        .chat-bubble-sender {
-            font-size: 11px;
-            color: #999;
-            margin-bottom: 4px;
-            font-weight: 600;
-        }
-
-        /* Input area at bottom */
-        .chat-input-area {
-            background: #ffffff;
-            padding: 20px 30px;
-            border-top: 2px solid #e0e0e0;
-        }
-
-        .chat-input-info {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        /* Macro buttons grid */
-        .macro-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 10px;
-        }
-
-        .btn-macro {
-            padding: 12px 16px;
-            border: 2px solid #4a9eff;
-            background: #ffffff;
-            color: #4a9eff;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .btn-macro:hover {
-            background: #4a9eff;
-            color: #ffffff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(74, 158, 255, 0.3);
-        }
-
-        .btn-macro:active {
-            transform: translateY(0);
-        }
-
-        .btn-macro:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* ===== RIGHT SIDEBAR - DASHBOARD ===== */
-        .sidebar-right {
-            background: #f9f9f9;
-            border-left: 1px solid #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            gap: 20px;
-        }
-
-        .dashboard-section {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .dashboard-section-title {
-            font-size: 14px;
-            font-weight: bold;
-            color: #666;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Timer display */
-        .timer-display {
-            font-size: 48px;
-            font-weight: bold;
-            text-align: center;
-            color: #4a9eff;
-            font-family: 'Courier New', monospace;
-        }
-
-        .timer-display.warning {
-            color: #ff9800;
-        }
-
-        .timer-display.danger {
-            color: #ff4444;
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .timer-label {
-            text-align: center;
-            color: #999;
-            font-size: 12px;
-            margin-top: 5px;
-        }
-
-        /* Stats display */
-        .stat-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-        .stat-item:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 13px;
-        }
-
-        .stat-value {
-            font-weight: bold;
-            color: #333;
-            font-size: 14px;
-        }
-
-        .stat-value.good {
-            color: #4caf50;
-        }
-
-        .stat-value.bad {
-            color: #ff4444;
-        }
-
-        /* Action buttons */
-        .btn-action {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 10px;
-        }
-
-        .btn-action:last-child {
-            margin-bottom: 0;
-        }
-
-        .btn-action.btn-personal {
-            background: #ff9800;
-            color: white;
-        }
-
-        .btn-action.btn-personal:hover {
-            background: #f57c00;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
-        }
-
-        .btn-action.btn-start {
-            background: #4caf50;
-            color: white;
-            font-size: 18px;
-            padding: 20px;
-        }
-
-        .btn-action.btn-start:hover {
-            background: #45a049;
-        }
-
-        .btn-action:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        /* ===== BLOCKING MODAL (Personal Tasks) ===== */
-        .blocking-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-
-        .blocking-modal.active {
-            display: flex;
-        }
-
-        .blocking-modal-content {
-            background: #ffffff;
-            padding: 60px 80px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
-        }
-
-        .blocking-modal-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
-
-        .blocking-modal-title {
-            font-size: 28px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .blocking-modal-timer {
-            font-size: 48px;
-            font-weight: bold;
-            color: #ff9800;
-            font-family: 'Courier New', monospace;
-            margin-top: 20px;
-        }
-
-        /* ===== GAME OVER OVERLAY ===== */
-        .game-over-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-        }
-
-        .game-over-overlay.active {
-            display: flex;
-        }
-
-        .game-over-content {
-            background: #ffffff;
-            padding: 60px 80px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
-            max-width: 600px;
-        }
-
-        .game-over-title {
-            font-size: 36px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: #333;
-        }
-
-        .game-over-stats {
-            margin: 30px 0;
-            text-align: left;
-        }
-
-        .game-over-stat {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px 0;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 18px;
-        }
-
-        .game-over-stat:last-child {
-            border-bottom: none;
-        }
-
-        .btn-restart {
-            background: #4a9eff;
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-
-        .btn-restart:hover {
-            background: #3a8eef;
-        }
-
-        /* ===== SCROLLBAR STYLING ===== */
-        .chat-messages::-webkit-scrollbar,
-        .chat-list::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .chat-messages::-webkit-scrollbar-track,
-        .chat-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb,
-        .chat-list::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb:hover,
-        .chat-list::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
+        /* SIDEBAR LEFT */
+        .sidebar-left { background: #2c3e50; color: #ecf0f1; display: flex; flex-direction: column; border-right: 1px solid #34495e; }
+        .sidebar-header { padding: 20px; background: #1a252f; font-weight: bold; }
+        .chat-list { flex: 1; overflow-y: auto; }
+        
+        /* Chat Item Style Fix */
+        .chat-item { 
+            padding: 15px; 
+            border-bottom: 1px solid #34495e; 
+            cursor: pointer; /* 포인터 커서 확실하게 */
+            transition: 0.2s; 
+            position: relative; 
+        }
+        .chat-item:hover { background: #34495e; }
+        .chat-item.active { background: #34495e; border-left: 5px solid #3498db; }
+        .chat-item.alert { animation: flashRed 1s infinite; }
+        @keyframes flashRed { 0% { background-color: #2c3e50; } 50% { background-color: #c0392b; } 100% { background-color: #2c3e50; } }
+        
+        .patience-track { height: 4px; background: #444; margin-top: 8px; border-radius: 2px; }
+        .patience-bar { height: 100%; background: #2ecc71; width: 100%; transition: width 0.2s linear; }
+        .badge-type { font-size:0.7rem; background:#ecf0f1; color:#333; padding:2px 5px; border-radius:3px; margin-left: 5px;}
+
+        /* CENTER CHAT */
+        .chat-main { display: flex; flex-direction: column; background: #f8f9fa; }
+        .chat-header { padding: 15px 25px; background: #fff; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        .chat-window { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        
+        .bubble { max-width: 70%; padding: 10px 15px; border-radius: 15px; font-size: 0.95rem; line-height: 1.4; word-break: break-all; }
+        .bubble.customer { align-self: flex-start; background: #fff; border: 1px solid #dee2e6; border-top-left-radius: 2px; }
+        .bubble.customer.angry { border-color: #e74c3c; color: #c0392b; background: #fadbd8; font-weight: bold; }
+        .bubble.agent { align-self: flex-end; background: #3498db; color: #fff; border-top-right-radius: 2px; }
+        .bubble.system { align-self: center; background: rgba(0,0,0,0.05); font-size: 0.8rem; color: #666; padding: 5px 15px; border-radius: 20px; }
+
+        /* INPUT AREA */
+        .input-area { background: #fff; padding: 20px; border-top: 1px solid #dee2e6; }
+        .script-guide { font-size: 0.9rem; color: #e67e22; margin-bottom: 8px; font-weight: bold; }
+        .script-box { background: #fdf2e9; padding: 10px; border-radius: 5px; margin-bottom: 10px; border-left: 3px solid #e67e22; color: #555; font-size: 0.95rem; }
+        .input-wrapper { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 12px; border: 2px solid #ced4da; border-radius: 5px; outline: none; }
+        input[type="text"]:focus { border-color: #3498db; }
+        input[type="text"].error { border-color: #e74c3c; animation: shake 0.3s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(5px); } 50% { transform: translateX(-5px); } }
+        .btn-send { padding: 0 25px; background: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+
+        /* RIGHT DASHBOARD */
+        .sidebar-right { background: #fff; padding: 20px; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; gap: 20px; }
+        .dashboard-card { background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #e9ecef; }
+        .timer { font-size: 3rem; font-weight: bold; color: #2c3e50; text-align: center; font-family: monospace; }
+        .timer.danger { color: #e74c3c; animation: pulse 1s infinite; }
+        
+        .task-btn { width: 100%; padding: 15px; margin-bottom: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; position: relative; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .task-btn:hover { filter: brightness(1.1); }
+        .task-btn:disabled { background: #95a5a6 !important; cursor: not-allowed; opacity: 0.7; }
+        .btn-toilet { background: #9b59b6; }
+        .btn-water { background: #3498db; }
+        .btn-meal { background: #e67e22; }
+        .check-mark { display: none; }
+        .task-btn.done .check-mark { display: block; }
+        
+        /* OVERLAYS */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; flex-direction: column; color: white; }
+        .overlay.active { display: flex; }
+        .overlay-content { background: #fff; color: #333; padding: 40px; border-radius: 15px; text-align: center; max-width: 500px; }
+        .progress-bar { width: 300px; height: 10px; background: #555; margin-top: 20px; border-radius: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #e74c3c; width: 0%; }
+
+        /* RESULT STYLES */
+        .result-badge { display: inline-block; padding: 5px 10px; border-radius: 5px; margin-top: 10px; font-weight: bold; color: white; }
+        .badge-bad { background: #e74c3c; }
+        .badge-warn { background: #f39c12; }
+        .badge-good { background: #2ecc71; }
     </style>
 </head>
 <body>
-    <!-- Main Container with 3-column grid -->
-    <div class="container">
-        
-        <!-- ===== LEFT SIDEBAR: CHAT LIST ===== -->
-        <div class="sidebar-left">
-            <div class="sidebar-header">
-                <div class="sidebar-title">고객 상담</div>
-                <div class="sidebar-subtitle">대기 중인 고객</div>
-            </div>
-            <div class="chat-list" id="chatList">
-                <!-- Chat items will be dynamically added here -->
-            </div>
+
+<div id="entryScreen" class="flex-center">
+    <div class="title-box">
+        <div class="game-title">감정노동 상담사</div>
+        <div class="game-subtitle">극한의 고객센터 시뮬레이션</div>
+    </div>
+    <div class="difficulty-container">
+        <button class="diff-btn easy" onclick="startGame('easy')">
+            🐣 신입 (Easy)<br><span style="font-size:0.8rem">동시응대 최대 2명</span>
+        </button>
+        <button class="diff-btn normal" onclick="startGame('normal')">
+            💼 경력 (Normal)<br><span style="font-size:0.8rem">동시응대 최대 4명</span>
+        </button>
+        <button class="diff-btn hard" onclick="startGame('hard')">
+            🔥 팀장 (Hard)<br><span style="font-size:0.8rem">지옥 / 쉴 틈 없음</span>
+        </button>
+    </div>
+</div>
+
+<div class="container hidden" id="gameScreen">
+    <div class="sidebar-left">
+        <div class="sidebar-header">💬 상담 대기열</div>
+        <div class="chat-list" id="chatList"></div>
+    </div>
+
+    <div class="chat-main">
+        <div class="chat-header">
+            <h3 id="currentCustomerName">상담 대기 중...</h3>
+            <span id="currentStatus" style="font-size: 0.8rem; color: #7f8c8d;">-</span>
         </div>
-
-        <!-- ===== CENTER: MAIN CHAT WINDOW ===== -->
-        <div class="chat-main">
-            <div class="chat-header">
-                <div>
-                    <div class="chat-header-title" id="chatHeaderTitle">고객을 선택하세요</div>
-                </div>
-                <div class="chat-header-status" id="chatHeaderStatus">대기 중</div>
-            </div>
-            
-            <div class="chat-messages" id="chatMessages">
-                <div class="chat-bubble system">
-                    게임을 시작하려면 오른쪽 "게임 시작" 버튼을 누르세요!
-                </div>
-            </div>
-
-            <div class="chat-input-area">
-                <div class="chat-input-info">💡 매크로 버튼을 클릭하여 응답하세요 (직접 타이핑 불가)</div>
-                <div class="macro-buttons" id="macroButtons">
-                    <!-- Macro buttons will be dynamically added based on selected customer -->
-                </div>
-            </div>
+        <div class="chat-window" id="chatWindow">
+            <div class="bubble system">왼쪽 목록에서 고객을 선택하세요.</div>
         </div>
-
-        <!-- ===== RIGHT SIDEBAR: DASHBOARD ===== -->
-        <div class="sidebar-right">
-            <!-- Timer Section -->
-            <div class="dashboard-section">
-                <div class="dashboard-section-title">⏱️ 남은 시간</div>
-                <div class="timer-display" id="timerDisplay">60</div>
-                <div class="timer-label">초</div>
-            </div>
-
-            <!-- Stats Section -->
-            <div class="dashboard-section">
-                <div class="dashboard-section-title">📊 통계</div>
-                <div class="stat-item">
-                    <span class="stat-label">해결한 고객</span>
-                    <span class="stat-value good" id="statResolved">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">화난 고객</span>
-                    <span class="stat-value bad" id="statAngry">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">대기 중</span>
-                    <span class="stat-value" id="statWaiting">0</span>
-                </div>
-            </div>
-
-            <!-- Personal Needs Section -->
-            <div class="dashboard-section">
-                <div class="dashboard-section-title">🧑 개인 활동</div>
-                <button class="btn-action btn-personal" id="btnToilet" disabled>
-                    🚽 화장실 (5초)
-                </button>
-                <button class="btn-action btn-personal" id="btnWater" disabled>
-                    💧 물 마시기 (3초)
-                </button>
-                <button class="btn-action btn-personal" id="btnMeal" disabled>
-                    🍱 식사 (5초)
-                </button>
-            </div>
-
-            <!-- Start Button -->
-            <div class="dashboard-section">
-                <button class="btn-action btn-start" id="btnStart">
-                    🎮 게임 시작
-                </button>
+        <div class="input-area">
+            <div class="script-guide">▼ 아래 멘트를 입력하세요 (엔터로 전송)</div>
+            <div class="script-box" id="scriptTarget">...</div>
+            <div class="input-wrapper">
+                <input type="text" id="userInput" placeholder="내용 입력..." disabled onpaste="return false;" autocomplete="off">
+                <button class="btn-send" id="btnSend">전송</button>
             </div>
         </div>
     </div>
 
-    <!-- ===== BLOCKING MODAL (For Personal Tasks) ===== -->
-    <div class="blocking-modal" id="blockingModal">
-        <div class="blocking-modal-content">
-            <div class="blocking-modal-icon" id="modalIcon">⏸️</div>
-            <div class="blocking-modal-title" id="modalTitle">잠시 자리를 비웠습니다...</div>
-            <div class="blocking-modal-timer" id="modalTimer">5</div>
+    <div class="sidebar-right">
+        <div class="dashboard-card timer-box">
+            <div style="font-size: 0.9rem; color: #7f8c8d;">퇴근까지 남은 시간</div>
+            <div class="timer" id="gameTimer">60</div>
+        </div>
+
+        <div class="dashboard-card">
+            <div style="font-size: 0.9rem; margin-bottom: 10px; font-weight: bold; color:#e74c3c;">⚠️ 필수 생존 미션 (미수행 시 건강 악화)</div>
+            <button class="task-btn btn-toilet" id="btnToilet" onclick="doPersonalTask('toilet', 5)">
+                <span>🚽 화장실 (5초)</span> <span class="check-mark">✅</span>
+            </button>
+            <button class="task-btn btn-water" id="btnWater" onclick="doPersonalTask('water', 3)">
+                <span>💧 물 마시기 (3초)</span> <span class="check-mark">✅</span>
+            </button>
+            <button class="task-btn btn-meal" id="btnMeal" onclick="doPersonalTask('meal', 5)">
+                <span>🍙 식사 (5초)</span> <span class="check-mark">✅</span>
+            </button>
+        </div>
+
+        <div class="dashboard-card">
+            <div style="font-size: 0.9rem; margin-bottom: 5px;">실적 현황</div>
+            <div>✅ 해결: <span id="scoreResolved" style="font-weight:bold; color: #2ecc71">0</span></div>
+            <div>😡 불만: <span id="scoreAngry" style="font-weight:bold; color: #e74c3c">0</span></div>
         </div>
     </div>
+</div>
 
-    <!-- ===== GAME OVER OVERLAY ===== -->
-    <div class="game-over-overlay" id="gameOverOverlay">
-        <div class="game-over-content">
-            <div class="game-over-title" id="gameOverTitle">시간 종료!</div>
-            <div class="game-over-stats">
-                <div class="game-over-stat">
-                    <span>✅ 해결한 고객:</span>
-                    <span id="finalResolved" style="color: #4caf50; font-weight: bold;">0</span>
-                </div>
-                <div class="game-over-stat">
-                    <span>😠 화난 고객:</span>
-                    <span id="finalAngry" style="color: #ff4444; font-weight: bold;">0</span>
-                </div>
-                <div class="game-over-stat">
-                    <span>⏱️ 평균 응답 시간:</span>
-                    <span id="finalAvgTime" style="color: #4a9eff; font-weight: bold;">0s</span>
-                </div>
-                <div class="game-over-stat">
-                    <span>🏆 최종 점수:</span>
-                    <span id="finalScore" style="color: #ff9800; font-weight: bold;">0</span>
-                </div>
-            </div>
-            <button class="btn-restart" id="btnRestart">다시 시작</button>
+<div class="overlay" id="taskOverlay">
+    <h2 id="taskTitle">업무 중단...</h2>
+    <div class="progress-bar"><div class="progress-fill" id="taskProgress"></div></div>
+    <p style="margin-top:15px; font-size: 0.9rem; color: #ccc;">(고객 채팅은 계속 쌓이고 있습니다)</p>
+</div>
+
+<div class="overlay" id="resultOverlay">
+    <div class="overlay-content">
+        <h2 id="resultTitle">업무 종료</h2>
+        <div id="resultBadge" class="result-badge"></div>
+        <p style="margin: 20px 0; line-height: 1.6;" id="resultDesc"></p>
+        
+        <div style="text-align: left; background: #f1f1f1; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <div>✅ 처리 실적: <span id="finalScore">0</span>건</div>
+            <div>😡 불만 건수: <span id="finalAngry">0</span>건</div>
+            <div>❤️ 생존 미션: <span id="finalTasks">0</span>/3 완료</div>
         </div>
+        <button class="task-btn" style="background: #2c3e50; justify-content: center;" onclick="location.reload()">다시 출근하기</button>
     </div>
+</div>
 
-    <script>
-        // ========================================
-        // GAME DATA - SCENARIOS & CONFIGURATIONS
-        // ========================================
+<script>
+    // === GAME CONFIGURATION (난이도 조절) ===
+    const SETTINGS = {
+        easy: { 
+            time: 60, 
+            spawnRate: 4000, // 고객 등장 속도 (느림)
+            decay: 0.8, // 화나는 속도 (느림)
+            maxActive: 2, // 동시에 응대할 최대 고객 수 (제한)
+            totalLimit: 5 // 이 레벨에서 등장할 총 고객 수 (적음)
+        },
+        normal: { 
+            time: 60, 
+            spawnRate: 3000, 
+            decay: 1.2, 
+            maxActive: 4, 
+            totalLimit: 999 
+        },
+        hard: { 
+            time: 60, 
+            spawnRate: 2000, 
+            decay: 1.8, 
+            maxActive: 6, 
+            totalLimit: 999 
+        }
+    };
+    
+    // === SCENARIOS ===
+    const SCENARIOS = [
+        {
+            type: "배달지연",
+            names: ["김성격", "이급해", "박재촉"],
+            start: ["배달 언제 와요?", "1시간 지났어요.", "배달 출발은 했나요?"],
+            steps: [
+                { t: "주문 정보 확인해 보겠습니다.", r: "빨리 좀 보세요." },
+                { t: "기사님 위치 확인 중입니다.", r: "아 현기증 나요." },
+                { t: "죄송합니다. 5분 내 도착 예정입니다.", r: "알겠습니다." }
+            ]
+        },
+        {
+            type: "음식누락",
+            names: ["최콜라", "정단무지", "강소스"],
+            start: ["사이드 메뉴가 안 왔어요.", "콜라 빠졌는데요?", "소스가 없어요."],
+            steps: [
+                { t: "불편 드려 죄송합니다.", r: "어떻게 하실 거예요?" },
+                { t: "매장 확인 후 재배달 해드리겠습니다.", r: "지금 당장 필요하다고요." },
+                { t: "신속하게 보내드리겠습니다.", r: "네 알겠습니다." }
+            ]
+        },
+        {
+            type: "주소변경",
+            names: ["한이사", "오전입", "장실수"],
+            start: ["주소지 변경 가능한가요?", "회사로 시켰는데 집으로 바꿀래요.", "주소를 잘못 적었어요."],
+            steps: [
+                { t: "주문 번호 확인해 보겠습니다.", r: "네 빨리요." },
+                { t: "변경할 주소지 말씀해 주세요.", r: "서울시 강남구..." },
+                { t: "주소 변경 완료되었습니다.", r: "감사합니다." }
+            ]
+        }
+    ];
+
+    const GREETING_STARTS = ["안녕하세요.", "저기요.", "상담원분?"];
+    const ANGRY_TEXTS = ["답변 안 하세요?", "듣고 있어요?", "사람 있나요?", "장난하세요?", "아 답답해"];
+
+    // === STATE ===
+    let state = {
+        isPlaying: false,
+        difficulty: 'normal',
+        time: 60,
+        decayRate: 1.0,
+        customers: [],
+        activeId: null,
+        totalSpawned: 0,
+        score: { resolved: 0, angry: 0 },
+        tasks: { toilet: false, water: false, meal: false },
+        intervals: []
+    };
+
+    // === DOM ELEMENTS ===
+    const els = {
+        entry: document.getElementById('entryScreen'),
+        game: document.getElementById('gameScreen'),
+        list: document.getElementById('chatList'),
+        window: document.getElementById('chatWindow'),
+        input: document.getElementById('userInput'),
+        target: document.getElementById('scriptTarget'),
+        timer: document.getElementById('gameTimer'),
+        resTitle: document.getElementById('resultTitle'),
+        resDesc: document.getElementById('resultDesc'),
+        resBadge: document.getElementById('resultBadge')
+    };
+
+    // === FUNCTIONS ===
+    function startGame(difficulty) {
+        els.entry.classList.add('hidden');
+        els.game.classList.remove('hidden');
+
+        state.difficulty = difficulty;
+        const setting = SETTINGS[difficulty];
         
-        // Define customer scenarios (You can easily edit these!)
-        const SCENARIOS = {
-            deliveryDelay: {
-                type: 'deliveryDelay',
-                customerName: '김철수',
-                initialMessage: '왜 이렇게 늦어요? 한 시간 넘게 기다렸는데요!',
-                angryMessages: [
-                    '아직도 답이 없네요? 도대체 어떻게 된 거에요?',
-                    '이거 완전 무시하는 거죠? 환불하세요!',
-                    '대체 언제 답변 주실 건가요???'
-                ],
-                expectedFlow: ['checkOrder', 'checkLocation', 'apology'],
-                flowIndex: 0,
-                responses: {
-                    checkOrder: '주문 확인해드리겠습니다. 잠시만 기다려 주세요.',
-                    checkLocation: '배달 기사님 위치 확인 중입니다. 5분 내 도착 예정입니다.',
-                    apology: '불편을 드려 죄송합니다. 다음 주문 시 할인 쿠폰을 드리겠습니다.'
-                },
-                successMessage: '감사합니다. 빨리 와주셨으면 좋겠어요.',
-                macros: [
-                    { id: 'greeting', label: '인사', text: '안녕하세요! 무엇을 도와드릴까요?' },
-                    { id: 'checkOrder', label: '주문 조회', text: '주문 확인해드리겠습니다. 잠시만 기다려 주세요.' },
-                    { id: 'checkLocation', label: '위치 확인', text: '배달 기사님 위치 확인 중입니다. 5분 내 도착 예정입니다.' },
-                    { id: 'apology', label: '사과', text: '불편을 드려 죄송합니다. 다음 주문 시 할인 쿠폰을 드리겠습니다.' },
-                    { id: 'refund', label: '환불 안내', text: '환불 처리해드리겠습니다.' }
-                ]
-            },
-            wrongFood: {
-                type: 'wrongFood',
-                customerName: '이영희',
-                initialMessage: '음식이 잘못 왔어요! 주문한 거랑 완전 다른 게 왔는데요?',
-                angryMessages: [
-                    '답변 좀 주세요! 배고픈데 어떻게 하라는 건가요?',
-                    '정말 최악이네요. 환불해주세요!',
-                    '대체 언제 해결해주실 건가요??'
-                ],
-                expectedFlow: ['checkOrder', 'apology', 'refundOrRedelivery'],
-                flowIndex: 0,
-                responses: {
-                    checkOrder: '주문 내역 확인해드리겠습니다.',
-                    apology: '정말 죄송합니다. 즉시 처리해드리겠습니다.',
-                    refundOrRedelivery: '새 음식 재배달 또는 전액 환불 도와드리겠습니다. 어떻게 해드릴까요?'
-                },
-                successMessage: '빠른 처리 감사합니다.',
-                macros: [
-                    { id: 'greeting', label: '인사', text: '안녕하세요! 무엇을 도와드릴까요?' },
-                    { id: 'checkOrder', label: '주문 조회', text: '주문 내역 확인해드리겠습니다.' },
-                    { id: 'apology', label: '사과', text: '정말 죄송합니다. 즉시 처리해드리겠습니다.' },
-                    { id: 'refundOrRedelivery', label: '환불/재배달', text: '새 음식 재배달 또는 전액 환불 도와드리겠습니다. 어떻게 해드릴까요?' },
-                    { id: 'refund', label: '환불 안내', text: '환불 처리해드리겠습니다.' }
-                ]
-            },
-            complaint: {
-                type: 'complaint',
-                customerName: '박민수',
-                initialMessage: '배달 기사님이 너무 불친절했어요. 음식도 엉망으로 와서 짜증나네요!',
-                angryMessages: [
-                    '답변도 안 하시네요? 이거 무시하는 거죠?',
-                    '정말 최악의 서비스네요!',
-                    '대체 언제 답변 주실 건가요??'
-                ],
-                expectedFlow: ['apology', 'checkOrder', 'compensation'],
-                flowIndex: 0,
-                responses: {
-                    apology: '정말 죄송합니다. 고객님의 불편을 최우선으로 처리하겠습니다.',
-                    checkOrder: '해당 건에 대해 확인 후 조치하겠습니다.',
-                    compensation: '보상으로 5,000원 쿠폰을 지급해드리겠습니다.'
-                },
-                successMessage: '조치해주셔서 감사합니다.',
-                macros: [
-                    { id: 'greeting', label: '인사', text: '안녕하세요! 무엇을 도와드릴까요?' },
-                    { id: 'apology', label: '사과', text: '정말 죄송합니다. 고객님의 불편을 최우선으로 처리하겠습니다.' },
-                    { id: 'checkOrder', label: '주문 확인', text: '해당 건에 대해 확인 후 조치하겠습니다.' },
-                    { id: 'compensation', label: '보상', text: '보상으로 5,000원 쿠폰을 지급해드리겠습니다.' },
-                    { id: 'refund', label: '환불 안내', text: '환불 처리해드리겠습니다.' }
-                ]
+        state.time = setting.time;
+        state.decayRate = setting.decay;
+        state.isPlaying = true;
+        state.totalSpawned = 0;
+
+        // Start Logic
+        spawnCustomer(); 
+        
+        state.intervals.push(setInterval(gameLoop, 100));
+        state.intervals.push(setInterval(spawnCustomer, setting.spawnRate));
+
+        els.input.disabled = false;
+        els.input.focus();
+        
+        updateTimer();
+    }
+
+    function gameLoop() {
+        if (!state.isPlaying) return;
+
+        state.time -= 0.1;
+        updateTimer();
+        if (state.time <= 0) endGame();
+
+        state.customers.forEach(c => {
+            if (c.done) return;
+            c.patience -= 0.1 * state.decayRate;
+
+            if (c.patience < 50 && !c.angry && Math.random() < 0.01) {
+                addMsg(c.id, 'customer', ANGRY_TEXTS[Math.floor(Math.random() * ANGRY_TEXTS.length)], true);
             }
+
+            if (c.patience <= 0) {
+                failCustomer(c);
+            }
+        });
+        
+        // 게이지바 실시간 업데이트를 위해 리렌더링
+        renderChatList();
+    }
+
+    function spawnCustomer() {
+        const setting = SETTINGS[state.difficulty];
+
+        // [중요] 난이도 조절 로직: 최대 동시 접속자 수 제한 & 총량 제한
+        const activeCount = state.customers.filter(c => !c.done).length;
+        if (activeCount >= setting.maxActive) return;
+        if (state.totalSpawned >= setting.totalLimit) return;
+
+        state.totalSpawned++;
+        const s = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+        
+        let steps = JSON.parse(JSON.stringify(s.steps));
+        let startMsg = s.start[Math.floor(Math.random() * s.start.length)];
+        
+        // 인사 로직
+        const isGreetingStart = Math.random() < 0.5;
+        if (isGreetingStart) {
+            steps.unshift({ t: "안녕하세요. 무엇을 도와드릴까요?", r: startMsg });
+            startMsg = GREETING_STARTS[Math.floor(Math.random() * GREETING_STARTS.length)];
+        } else {
+            steps[0].t = "안녕하세요. " + steps[0].t;
+        }
+
+        const newC = {
+            id: Date.now() + Math.random(),
+            name: s.names[Math.floor(Math.random() * s.names.length)],
+            type: s.type,
+            steps: steps,
+            stepIdx: 0,
+            patience: 100,
+            msgs: [{ sender: 'customer', text: startMsg, angry: false }],
+            angry: false,
+            done: false
         };
 
-        // ========================================
-        // GAME STATE
-        // ========================================
+        state.customers.push(newC);
         
-        let gameState = {
-            isPlaying: false,
-            timeRemaining: 60,
-            customers: [],
-            selectedCustomerId: null,
-            stats: {
-                resolved: 0,
-                angry: 0,
-                totalResponseTime: 0,
-                responseCount: 0
-            },
-            isBlocked: false // For personal tasks overlay
-        };
+        if (!state.activeId) selectCustomer(newC.id);
+        renderChatList();
+    }
 
-        // ========================================
-        // DOM ELEMENTS
-        // ========================================
+    function selectCustomer(id) {
+        state.activeId = id;
         
-        const elements = {
-            chatList: document.getElementById('chatList'),
-            chatMessages: document.getElementById('chatMessages'),
-            macroButtons: document.getElementById('macroButtons'),
-            timerDisplay: document.getElementById('timerDisplay'),
-            chatHeaderTitle: document.getElementById('chatHeaderTitle'),
-            chatHeaderStatus: document.getElementById('chatHeaderStatus'),
-            statResolved: document.getElementById('statResolved'),
-            statAngry: document.getElementById('statAngry'),
-            statWaiting: document.getElementById('statWaiting'),
-            btnStart: document.getElementById('btnStart'),
-            btnToilet: document.getElementById('btnToilet'),
-            btnWater: document.getElementById('btnWater'),
-            btnMeal: document.getElementById('btnMeal'),
-            blockingModal: document.getElementById('blockingModal'),
-            modalIcon: document.getElementById('modalIcon'),
-            modalTitle: document.getElementById('modalTitle'),
-            modalTimer: document.getElementById('modalTimer'),
-            gameOverOverlay: document.getElementById('gameOverOverlay'),
-            gameOverTitle: document.getElementById('gameOverTitle'),
-            finalResolved: document.getElementById('finalResolved'),
-            finalAngry: document.getElementById('finalAngry'),
-            finalAvgTime: document.getElementById('finalAvgTime'),
-            finalScore: document.getElementById('finalScore'),
-            btnRestart: document.getElementById('btnRestart')
-        };
-
-        // ========================================
-        // GAME INITIALIZATION
-        // ========================================
+        // 채팅방 변경 시 입력창 리셋 및 포커스
+        els.input.value = "";
+        els.input.classList.remove('error');
+        els.input.disabled = false;
+        els.input.focus();
         
-        function initGame() {
-            // Reset game state
-            gameState = {
-                isPlaying: true,
-                timeRemaining: 60,
-                customers: [],
-                selectedCustomerId: null,
-                stats: {
-                    resolved: 0,
-                    angry: 0,
-                    totalResponseTime: 0,
-                    responseCount: 0
-                },
-                isBlocked: false
-            };
+        renderChatList();
+        renderChatWindow();
+    }
 
-            // Clear UI
-            elements.chatMessages.innerHTML = '<div class="chat-bubble system">게임이 시작되었습니다! 고객 응대를 시작하세요.</div>';
-            elements.chatList.innerHTML = '';
-            elements.macroButtons.innerHTML = '';
+    function failCustomer(c) {
+        c.done = true;
+        c.angry = true;
+        state.score.angry++;
+        addMsg(c.id, 'customer', "아 됐어요. 상담 종료합니다.", true);
+        addMsg(c.id, 'system', "상담 실패 (불만 접수됨)");
+        updateDashboard();
+        if (state.activeId === c.id) renderChatWindow();
+    }
 
-            // Enable personal task buttons
-            elements.btnToilet.disabled = false;
-            elements.btnWater.disabled = false;
-            elements.btnMeal.disabled = false;
-            elements.btnStart.disabled = true;
-
-            // Update UI
-            updateStatsDisplay();
-            updateTimerDisplay();
-
-            // Create initial customers (spawn 2 customers at start)
-            setTimeout(() => addNewCustomer(), 500);
-            setTimeout(() => addNewCustomer(), 2000);
-
-            // Start game timers
-            startGameTimer();
-            startCustomerSpawner();
-        }
-
-        // ========================================
-        // CUSTOMER MANAGEMENT
-        // ========================================
-        
-        function addNewCustomer() {
-            if (!gameState.isPlaying) return;
-
-            // Randomly select a scenario
-            const scenarioKeys = Object.keys(SCENARIOS);
-            const randomScenario = SCENARIOS[scenarioKeys[Math.floor(Math.random() * scenarioKeys.length)]];
-
-            // Create customer object
-            const customer = {
-                id: Date.now() + Math.random(),
-                ...JSON.parse(JSON.stringify(randomScenario)), // Deep clone
-                patience: 100,
-                patienceTimer: null,
-                lastResponseTime: Date.now(),
-                isAngry: false,
-                isResolved: false,
-                messages: []
-            };
-
-            // Add initial message
-            customer.messages.push({
-                sender: 'customer',
-                text: customer.initialMessage,
-                timestamp: Date.now()
-            });
-
-            gameState.customers.push(customer);
+    // === RENDERERS ===
+    function renderChatList() {
+        els.list.innerHTML = "";
+        state.customers.forEach(c => {
+            // 완료된 채팅은 목록에서 제거 (단, 현재 보고 있는 채팅은 유지)
+            if (c.done && state.activeId !== c.id) return;
             
-            // Update UI
-            renderChatList();
-            updateStatsDisplay();
-
-            // Start patience timer for this customer
-            startPatienceTimer(customer.id);
-
-            // Auto-select if this is the first customer
-            if (gameState.customers.length === 1) {
-                selectCustomer(customer.id);
-            }
-        }
-
-        function selectCustomer(customerId) {
-            if (gameState.isBlocked) return; // Can't select during personal tasks
-
-            gameState.selectedCustomerId = customerId;
-            const customer = gameState.customers.find(c => c.id === customerId);
+            const div = document.createElement('div');
+            div.className = `chat-item ${state.activeId === c.id ? 'active' : ''}`;
+            if (c.patience < 30 && !c.done) div.classList.add('alert');
             
-            if (!customer) return;
+            const color = c.patience > 50 ? '#2ecc71' : '#e74c3c';
+            
+            div.innerHTML = `
+                <div style="font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+                    <span>${c.name}</span>
+                    <span class="badge-type">${c.type}</span>
+                </div>
+                <div style="font-size:0.8rem; color:#bdc3c7; margin:5px 0;">${c.msgs[c.msgs.length-1].text.substring(0,18)}...</div>
+                <div class="patience-track"><div class="patience-bar" style="width:${Math.max(0, c.patience)}%; background:${color}"></div></div>
+            `;
+            
+            // [수정] 클릭 이벤트 핸들러 개선: 즉시 선택되도록 설정
+            div.onclick = () => selectCustomer(c.id);
+            
+            els.list.appendChild(div);
+        });
+    }
 
-            // Update chat header
-            elements.chatHeaderTitle.textContent = customer.customerName;
-            elements.chatHeaderStatus.textContent = customer.isResolved ? '✅ 해결 완료' : '💬 응답 중';
-
-            // Render messages
-            renderMessages(customer);
-
-            // Render macro buttons
-            renderMacroButtons(customer);
-
-            // Update chat list to show active state
-            renderChatList();
+    function renderChatWindow() {
+        const c = state.customers.find(x => x.id === state.activeId);
+        if (!c) {
+            // 선택된 고객이 없을 때 처리
+            els.window.innerHTML = '<div class="bubble system">왼쪽 목록에서 고객을 선택하세요.</div>';
+            document.getElementById('currentCustomerName').innerText = "대기 중";
+            document.getElementById('currentStatus').innerText = "-";
+            els.target.innerText = "...";
+            return;
         }
 
-        function renderChatList() {
-            elements.chatList.innerHTML = '';
+        document.getElementById('currentCustomerName').innerText = `${c.name} 고객님`;
+        document.getElementById('currentStatus').innerText = c.type;
 
-            gameState.customers.forEach(customer => {
-                const div = document.createElement('div');
-                div.className = 'chat-item';
+        els.window.innerHTML = "";
+        c.msgs.forEach(m => {
+            const b = document.createElement('div');
+            b.className = `bubble ${m.sender} ${m.angry ? 'angry' : ''}`;
+            b.innerText = m.text;
+            els.window.appendChild(b);
+        });
+        els.window.scrollTop = els.window.scrollHeight;
+
+        // Script Target Update
+        if (c.done) {
+            els.target.innerText = c.angry ? "실패한 상담입니다." : "완료된 상담입니다.";
+            els.input.disabled = true;
+        } else {
+            els.target.innerText = c.steps[c.stepIdx].t;
+            els.input.disabled = false;
+            // 여기서 focus를 강제로 주면 타이핑 중 끊길 수 있으므로 제외하거나 조건부 적용
+        }
+    }
+
+    function updateTimer() {
+        els.timer.innerText = Math.ceil(state.time);
+        if (state.time < 10) els.timer.classList.add('danger');
+    }
+
+    function updateDashboard() {
+        document.getElementById('scoreResolved').innerText = state.score.resolved;
+        document.getElementById('scoreAngry').innerText = state.score.angry;
+    }
+
+    // === INTERACTION ===
+    els.input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const c = state.customers.find(x => x.id === state.activeId);
+            if (!c || c.done) return;
+
+            const target = c.steps[c.stepIdx].t.replace(/\s/g, ''); 
+            const input = els.input.value.trim().replace(/\s/g, '');
+
+            if (target === input) {
+                addMsg(c.id, 'agent', c.steps[c.stepIdx].t);
+                els.input.value = "";
+                c.patience = Math.min(100, c.patience + 20); 
                 
-                if (customer.id === gameState.selectedCustomerId) {
-                    div.classList.add('active');
+                c.stepIdx++;
+                if (c.stepIdx >= c.steps.length) {
+                    c.done = true;
+                    state.score.resolved++;
+                    addMsg(c.id, 'system', "상담 완료 (평점 5점)");
+                    updateDashboard();
+                    
+                    // 완료 시 자동으로 다른 대기 고객에게 이동하지 않음 (사용자가 직접 선택하도록 변경)
+                    // 만약 자동 이동을 원하면 아래 주석 해제
+                    // const next = state.customers.find(x => !x.done);
+                    // if (next) setTimeout(() => selectCustomer(next.id), 500);
+                } else {
+                    setTimeout(() => {
+                        if(!c.done && !c.angry) addMsg(c.id, 'customer', c.steps[c.stepIdx-1].r);
+                    }, 600);
                 }
-                
-                if (!customer.isResolved && customer.messages.length > 0) {
-                    div.classList.add('has-unread');
-                }
-
-                div.innerHTML = `
-                    <div class="chat-item-name">${customer.customerName}</div>
-                    <div class="chat-item-preview">
-                        ${customer.messages[customer.messages.length - 1]?.text.substring(0, 30) || '...'}
-                    </div>
-                    <div class="patience-bar-container">
-                        <div class="patience-bar" style="width: ${customer.patience}%"></div>
-                    </div>
-                    ${!customer.isResolved && customer.messages.length > 0 ? '<div class="unread-badge">!</div>' : ''}
-                `;
-
-                div.addEventListener('click', () => selectCustomer(customer.id));
-                elements.chatList.appendChild(div);
-            });
-        }
-
-        function renderMessages(customer) {
-            elements.chatMessages.innerHTML = '';
-
-            customer.messages.forEach(msg => {
-                const bubble = document.createElement('div');
-                bubble.className = `chat-bubble ${msg.sender}`;
-                
-                if (msg.sender === 'customer' && customer.isAngry) {
-                    bubble.classList.add('angry');
-                }
-
-                bubble.innerHTML = `
-                    ${msg.sender === 'customer' ? `<div class="chat-bubble-sender">${customer.customerName}</div>` : ''}
-                    ${msg.text}
-                `;
-
-                elements.chatMessages.appendChild(bubble);
-            });
-
-            // Scroll to bottom
-            elements.chatMessages.scrollTop = elements.chatMessages.scrollHeight;
-        }
-
-        function renderMacroButtons(customer) {
-            elements.macroButtons.innerHTML = '';
-
-            if (customer.isResolved) {
-                elements.macroButtons.innerHTML = '<div style="text-align: center; color: #4caf50; font-weight: bold;">✅ 해결 완료</div>';
-                return;
-            }
-
-            customer.macros.forEach(macro => {
-                const btn = document.createElement('button');
-                btn.className = 'btn-macro';
-                btn.textContent = macro.label;
-                btn.addEventListener('click', () => sendMacroResponse(customer.id, macro));
-                elements.macroButtons.appendChild(btn);
-            });
-        }
-
-        // ========================================
-        // MESSAGE HANDLING
-        // ========================================
-        
-        function sendMacroResponse(customerId, macro) {
-            if (gameState.isBlocked) return; // Can't send during personal tasks
-
-            const customer = gameState.customers.find(c => c.id === customerId);
-            if (!customer || customer.isResolved) return;
-
-            // Add agent message
-            customer.messages.push({
-                sender: 'agent',
-                text: macro.text,
-                timestamp: Date.now()
-            });
-
-            // Calculate response time
-            const responseTime = (Date.now() - customer.lastResponseTime) / 1000;
-            gameState.stats.totalResponseTime += responseTime;
-            gameState.stats.responseCount++;
-
-            // Reset patience to full
-            customer.patience = 100;
-            customer.lastResponseTime = Date.now();
-            customer.isAngry = false;
-
-            // Check if this is the correct response in the flow
-            if (customer.expectedFlow[customer.flowIndex] === macro.id) {
-                customer.flowIndex++;
-
-                // Check if flow is complete
-                if (customer.flowIndex >= customer.expectedFlow.length) {
-                    resolveCustomer(customer);
-                }
-            }
-
-            // Re-render
-            renderMessages(customer);
-            renderChatList();
-        }
-
-        function resolveCustomer(customer) {
-            customer.isResolved = true;
-
-            // Add success message from customer
-            customer.messages.push({
-                sender: 'customer',
-                text: customer.successMessage,
-                timestamp: Date.now()
-            });
-
-            // Add system message
-            customer.messages.push({
-                sender: 'system',
-                text: '✅ 고객 문제가 해결되었습니다!',
-                timestamp: Date.now()
-            });
-
-            // Update stats
-            gameState.stats.resolved++;
-
-            // Stop patience timer
-            if (customer.patienceTimer) {
-                clearInterval(customer.patienceTimer);
-            }
-
-            // Re-render
-            renderMessages(customer);
-            renderChatList();
-            updateStatsDisplay();
-            elements.chatHeaderStatus.textContent = '✅ 해결 완료';
-        }
-
-        // ========================================
-        // PATIENCE SYSTEM
-        // ========================================
-        
-        function startPatienceTimer(customerId) {
-            const customer = gameState.customers.find(c => c.id === customerId);
-            if (!customer) return;
-
-            customer.patienceTimer = setInterval(() => {
-                if (customer.isResolved || !gameState.isPlaying) {
-                    clearInterval(customer.patienceTimer);
-                    return;
-                }
-
-                // Decrease patience (loses 100% in 10 seconds = 10% per second)
-                customer.patience -= 2; // Updates every 200ms, so 10% per second
-
-                if (customer.patience <= 0) {
-                    customer.patience = 0;
-                    customerGetsAngry(customer);
-                }
-
-                renderChatList();
-            }, 200);
-        }
-
-        function customerGetsAngry(customer) {
-            if (customer.isAngry || customer.isResolved) return;
-
-            customer.isAngry = true;
-            gameState.stats.angry++;
-
-            // Send angry message
-            const angryMsg = customer.angryMessages[Math.floor(Math.random() * customer.angryMessages.length)];
-            customer.messages.push({
-                sender: 'customer',
-                text: angryMsg,
-                timestamp: Date.now()
-            });
-
-            // Reset patience for next cycle
-            customer.patience = 100;
-            customer.lastResponseTime = Date.now();
-
-            // Re-render if this is the selected customer
-            if (customer.id === gameState.selectedCustomerId) {
-                renderMessages(customer);
-            }
-
-            renderChatList();
-            updateStatsDisplay();
-        }
-
-        // ========================================
-        // TIMER SYSTEM
-        // ========================================
-        
-        let gameTimer = null;
-        let customerSpawner = null;
-
-        function startGameTimer() {
-            gameTimer = setInterval(() => {
-                gameState.timeRemaining--;
-                updateTimerDisplay();
-
-                if (gameState.timeRemaining <= 0) {
-                    endGame();
-                }
-            }, 1000);
-        }
-
-        function startCustomerSpawner() {
-            // Spawn new customer every 8-15 seconds
-            customerSpawner = setInterval(() => {
-                if (gameState.isPlaying && gameState.customers.filter(c => !c.isResolved).length < 5) {
-                    addNewCustomer();
-                }
-            }, Math.random() * 7000 + 8000);
-        }
-
-        function updateTimerDisplay() {
-            elements.timerDisplay.textContent = gameState.timeRemaining;
-            
-            // Change color based on time
-            elements.timerDisplay.classList.remove('warning', 'danger');
-            if (gameState.timeRemaining <= 10) {
-                elements.timerDisplay.classList.add('danger');
-            } else if (gameState.timeRemaining <= 30) {
-                elements.timerDisplay.classList.add('warning');
+            } else {
+                els.input.classList.add('error');
+                setTimeout(() => els.input.classList.remove('error'), 300);
             }
         }
+    });
 
-        function updateStatsDisplay() {
-            elements.statResolved.textContent = gameState.stats.resolved;
-            elements.statAngry.textContent = gameState.stats.angry;
-            elements.statWaiting.textContent = gameState.customers.filter(c => !c.isResolved).length;
+    document.getElementById('btnSend').addEventListener('click', () => {
+        const event = new KeyboardEvent('keydown', { key: 'Enter' });
+        els.input.dispatchEvent(event);
+    });
+
+    function addMsg(id, sender, text, angry = false) {
+        const c = state.customers.find(x => x.id === id);
+        if (c) {
+            c.msgs.push({ sender, text, angry });
+            // 현재 보고 있는 채팅방일 때만 즉시 렌더링
+            if (state.activeId === id) renderChatWindow();
+            renderChatList(); 
         }
+    }
 
-        // ========================================
-        // PERSONAL TASKS (BLOCKING MODAL)
-        // ========================================
+    window.doPersonalTask = function(type, duration) {
+        if (!state.isPlaying || state.tasks[type]) return;
+
+        state.tasks[type] = true;
+        const btn = document.getElementById('btn' + type.charAt(0).toUpperCase() + type.slice(1));
+        btn.classList.add('done');
+        btn.disabled = true;
+
+        const overlay = document.getElementById('taskOverlay');
+        const bar = document.getElementById('taskProgress');
         
-        function startPersonalTask(taskName, duration, icon) {
-            if (gameState.isBlocked || !gameState.isPlaying) return;
+        document.getElementById('taskTitle').innerText = 
+            type === 'toilet' ? "화장실 다녀오는 중..." : 
+            type === 'water' ? "수분 보충 중..." : "식사 중...";
 
-            gameState.isBlocked = true;
-
-            // Show modal
-            elements.modalIcon.textContent = icon;
-            elements.modalTitle.textContent = `${taskName} 중...`;
-            elements.modalTimer.textContent = duration;
-            elements.blockingModal.classList.add('active');
-
-            // Disable all buttons
-            disableAllButtons(true);
-
-            let timeLeft = duration;
-            const modalInterval = setInterval(() => {
-                timeLeft--;
-                elements.modalTimer.textContent = timeLeft;
-
-                if (timeLeft <= 0) {
-                    clearInterval(modalInterval);
-                    endPersonalTask();
-                }
-            }, 1000);
-        }
-
-        function endPersonalTask() {
-            gameState.isBlocked = false;
-            elements.blockingModal.classList.remove('active');
-            disableAllButtons(false);
-        }
-
-        function disableAllButtons(disabled) {
-            elements.btnToilet.disabled = disabled;
-            elements.btnWater.disabled = disabled;
-            elements.btnMeal.disabled = disabled;
-            
-            const macroBtns = elements.macroButtons.querySelectorAll('.btn-macro');
-            macroBtns.forEach(btn => btn.disabled = disabled);
-        }
-
-        // ========================================
-        // GAME END
-        // ========================================
+        overlay.classList.add('active');
+        bar.style.transition = `width ${duration}s linear`;
         
-        function endGame() {
-            gameState.isPlaying = false;
+        els.input.disabled = true;
+        setTimeout(() => bar.style.width = "100%", 50);
 
-            // Clear timers
-            if (gameTimer) clearInterval(gameTimer);
-            if (customerSpawner) clearInterval(customerSpawner);
+        setTimeout(() => {
+            overlay.classList.remove('active');
+            bar.style.width = "0%";
+            bar.style.transition = 'none';
+            els.input.disabled = false;
+            els.input.focus();
+        }, duration * 1000);
+    };
 
-            // Stop all customer timers
-            gameState.customers.forEach(customer => {
-                if (customer.patienceTimer) {
-                    clearInterval(customer.patienceTimer);
-                }
-            });
+    function endGame() {
+        state.isPlaying = false;
+        state.intervals.forEach(clearInterval);
 
-            // Calculate final stats
-            const avgResponseTime = gameState.stats.responseCount > 0 
-                ? (gameState.stats.totalResponseTime / gameState.stats.responseCount).toFixed(1)
-                : 0;
-
-            const score = (gameState.stats.resolved * 100) - (gameState.stats.angry * 50);
-
-            // Show game over overlay
-            elements.gameOverTitle.textContent = '시간 종료!';
-            elements.finalResolved.textContent = gameState.stats.resolved;
-            elements.finalAngry.textContent = gameState.stats.angry;
-            elements.finalAvgTime.textContent = avgResponseTime + 's';
-            elements.finalScore.textContent = Math.max(0, score);
-            elements.gameOverOverlay.classList.add('active');
-
-            // Disable buttons
-            elements.btnToilet.disabled = true;
-            elements.btnWater.disabled = true;
-            elements.btnMeal.disabled = true;
-        }
-
-        function restartGame() {
-            elements.gameOverOverlay.classList.remove('active');
-            elements.btnStart.disabled = false;
-        }
-
-        // ========================================
-        // EVENT LISTENERS
-        // ========================================
+        document.getElementById('resultOverlay').classList.add('active');
         
-        elements.btnStart.addEventListener('click', () => {
-            initGame();
-        });
+        const tasksCount = Object.values(state.tasks).filter(Boolean).length;
+        const { resolved, angry } = state.score;
 
-        elements.btnToilet.addEventListener('click', () => {
-            startPersonalTask('화장실', 5, '🚽');
-        });
+        document.getElementById('finalScore').innerText = resolved;
+        document.getElementById('finalAngry').innerText = angry;
+        document.getElementById('finalTasks').innerText = tasksCount;
 
-        elements.btnWater.addEventListener('click', () => {
-            startPersonalTask('물 마시기', 3, '💧');
-        });
+        if (angry >= resolved && angry > 0) {
+            els.resTitle.innerText = "해고 통보";
+            els.resBadge.innerText = "Bad Ending";
+            els.resBadge.className = "result-badge badge-bad";
+            els.resDesc.innerHTML = "고객 불만이 폭주하여 더 이상 근무할 수 없습니다.<br>팀장님이 면담을 요청하네요.";
+        } else if (tasksCount < 3) {
+            els.resTitle.innerText = "건강 악화";
+            els.resBadge.innerText = "Sad Ending";
+            els.resBadge.className = "result-badge badge-warn";
+            els.resDesc.innerHTML = "열심히 일했지만, 화장실도 못 가고 물도 못 마셨네요.<br>결국 병가를 내고 입원했습니다.";
+        } else {
+            els.resTitle.innerText = "이달의 우수 사원";
+            els.resBadge.innerText = "Happy Ending";
+            els.resBadge.className = "result-badge badge-good";
+            els.resDesc.innerHTML = "완벽한 일처리! 건강도 챙기고 고객도 만족시켰습니다.<br>보너스와 함께 칼퇴근 하세요!";
+        }
+    }
+</script>
 
-        elements.btnMeal.addEventListener('click', () => {
-            startPersonalTask('식사', 5, '🍱');
-        });
-
-        elements.btnRestart.addEventListener('click', () => {
-            restartGame();
-        });
-
-        // ========================================
-        // INITIALIZE ON LOAD
-        // ========================================
-        
-        console.log('🎮 Emotional Labor Consultant - Game Loaded!');
-        console.log('👉 Click "게임 시작" to begin!');
-    </script>
 </body>
 </html>
