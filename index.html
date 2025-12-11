@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>감정노동 상담사 - 배달의족속</title>
+    <style>
+        /* ===== GLOBAL STYLES ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+            background-color: #e9ecef;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* ===== UTILITY ===== */
+        .hidden { display: none !important; }
+        .flex-center { display: flex; justify-content: center; align-items: center; }
+
+        /* ===== ENTRY SCREEN (START PAGE) ===== */
+        #entryScreen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #2c3e50, #4ca1af);
+            z-index: 2000;
+            flex-direction: column;
+            color: white;
+            text-align: center;
+        }
+        .title-box { margin-bottom: 50px; animation: fadeInDown 1s; }
+        .game-title { font-size: 3rem; font-weight: bold; margin-bottom: 10px; }
+        .game-subtitle { font-size: 1.2rem; opacity: 0.8; }
+        
+        .difficulty-container { display: flex; gap: 20px; animation: fadeInUp 1s; }
+        .diff-btn {
+            padding: 20px 40px;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1.2rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .diff-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-5px); }
+        .diff-btn.easy { border-color: #2ecc71; }
+        .diff-btn.normal { border-color: #f1c40f; }
+        .diff-btn.hard { border-color: #e74c3c; }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ===== MAIN GAME LAYOUT ===== */
+        .container {
+            display: grid;
+            grid-template-columns: 280px 1fr 320px;
+            height: 100vh;
+            max-width: 1920px;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* SIDEBAR LEFT */
+        .sidebar-left { background: #2c3e50; color: #ecf0f1; display: flex; flex-direction: column; border-right: 1px solid #34495e; }
+        .sidebar-header { padding: 20px; background: #1a252f; font-weight: bold; }
+        .chat-list { flex: 1; overflow-y: auto; }
+        
+        .chat-item { 
+            padding: 15px; 
+            border-bottom: 1px solid #34495e; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+            position: relative; 
+        }
+        .chat-item:hover { background: #34495e; }
+        .chat-item.active { background: #34495e; border-left: 5px solid #3498db; }
+        .chat-item.alert { animation: flashRed 1s infinite; }
+        
+        @keyframes flashRed { 0% { background-color: #2c3e50; } 50% { background-color: #c0392b; } 100% { background-color: #2c3e50; } }
+        
+        .patience-track { height: 4px; background: #444; margin-top: 8px; border-radius: 2px; }
+        /* 게이지바 transition 제거 (JS로 부드럽게 제어하기 위함) */
+        .patience-bar { height: 100%; background: #2ecc71; width: 100%; } 
+        .badge-type { font-size:0.7rem; background:#ecf0f1; color:#333; padding:2px 5px; border-radius:3px; margin-left: 5px;}
+
+        /* CENTER CHAT */
+        .chat-main { display: flex; flex-direction: column; background: #f8f9fa; }
+        .chat-header { padding: 15px 25px; background: #fff; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        .chat-window { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        
+        .bubble { max-width: 70%; padding: 10px 15px; border-radius: 15px; font-size: 0.95rem; line-height: 1.4; word-break: break-all; }
+        .bubble.customer { align-self: flex-start; background: #fff; border: 1px solid #dee2e6; border-top-left-radius: 2px; }
+        .bubble.customer.angry { border-color: #e74c3c; color: #c0392b; background: #fadbd8; font-weight: bold; }
+        .bubble.agent { align-self: flex-end; background: #3498db; color: #fff; border-top-right-radius: 2px; }
+        .bubble.system { align-self: center; background: rgba(0,0,0,0.05); font-size: 0.8rem; color: #666; padding: 5px 15px; border-radius: 20px; }
+
+        /* INPUT AREA */
+        .input-area { background: #fff; padding: 20px; border-top: 1px solid #dee2e6; }
+        .script-guide { font-size: 0.9rem; color: #e67e22; margin-bottom: 8px; font-weight: bold; }
+        .script-box { background: #fdf2e9; padding: 10px; border-radius: 5px; margin-bottom: 10px; border-left: 3px solid #e67e22; color: #555; font-size: 0.95rem; }
+        .input-wrapper { display: flex; gap: 10px; }
+        input[type="text"] { flex: 1; padding: 12px; border: 2px solid #ced4da; border-radius: 5px; outline: none; }
+        input[type="text"]:focus { border-color: #3498db; }
+        input[type="text"].error { border-color: #e74c3c; animation: shake 0.3s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(5px); } 50% { transform: translateX(-5px); } }
+        .btn-send { padding: 0 25px; background: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+
+        /* RIGHT DASHBOARD */
+        .sidebar-right { background: #fff; padding: 20px; border-left: 1px solid #dee2e6; display: flex; flex-direction: column; gap: 20px; }
+        .dashboard-card { background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #e9ecef; }
+        .timer { font-size: 3rem; font-weight: bold; color: #2c3e50; text-align: center; font-family: monospace; }
+        .timer.danger { color: #e74c3c; animation: pulse 1s infinite; }
+        
+        .task-btn { width: 100%; padding: 15px; margin-bottom: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; position: relative; transition: 0.2s; display: flex; justify-content: space-between; align-items: center; }
+        .task-btn:hover { filter: brightness(1.1); }
+        .task-btn:disabled { background: #95a5a6 !important; cursor: not-allowed; opacity: 0.7; }
+        .btn-toilet { background: #9b59b6; }
+        .btn-water { background: #3498db; }
+        .btn-meal { background: #e67e22; }
+        .check-mark { display: none; }
+        .task-btn.done .check-mark { display: block; }
+        
+        /* OVERLAYS */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; display: none; justify-content: center; align-items: center; flex-direction: column; color: white; }
+        .overlay.active { display: flex; }
+        .overlay-content { background: #fff; color: #333; padding: 40px; border-radius: 15px; text-align: center; max-width: 500px; }
+        .progress-bar { width: 300px; height: 10px; background: #555; margin-top: 20px; border-radius: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; background: #e74c3c; width: 0%; }
+
+        /* RESULT STYLES */
+        .result-badge { display: inline-block; padding: 5px 10px; border-radius: 5px; margin-top: 10px; font-weight: bold; color: white; }
+        .badge-bad { background: #e74c3c; }
+        .badge-warn { background: #f39c12; }
+        .badge-good { background: #2ecc71; }
+    </style>
+</head>
+<body>
+
+<div id="entryScreen" class="flex-center">
+    <div class="title-box">
+        <div class="game-title">감정노동 상담사</div>
+        <div class="game-subtitle">극한의 고객센터 시뮬레이션</div>
+    </div>
+    <div class="difficulty-container">
+        <button class="diff-btn easy" onclick="startGame('easy')">
+            🐣 신입 (Easy)<br><span style="font-size:0.8rem">동시응대 최대 2명</span>
+        </button>
+        <button class="diff-btn normal" onclick="startGame('normal')">
+            💼 경력 (Normal)<br><span style="font-size:0.8rem">동시응대 최대 4명</span>
+        </button>
+        <button class="diff-btn hard" onclick="startGame('hard')">
+            🔥 팀장 (Hard)<br><span style="font-size:0.8rem">지옥 / 쉴 틈 없음</span>
+        </button>
+    </div>
+</div>
+
+<div class="container hidden" id="gameScreen">
+    <div class="sidebar-left">
+        <div class="sidebar-header">💬 상담 대기열</div>
+        <div class="chat-list" id="chatList"></div>
+    </div>
+
+    <div class="chat-main">
+        <div class="chat-header">
+            <h3 id="currentCustomerName">상담 대기 중...</h3>
+            <span id="currentStatus" style="font-size: 0.8rem; color: #7f8c8d;">-</span>
+        </div>
+        <div class="chat-window" id="chatWindow">
+            <div class="bubble system">왼쪽 목록에서 고객을 선택하세요.</div>
+        </div>
+        <div class="input-area">
+            <div class="script-guide">▼ 아래 멘트를 입력하세요 (엔터로 전송)</div>
+            <div class="script-box" id="scriptTarget">...</div>
+            <div class="input-wrapper">
+                <input type="text" id="userInput" placeholder="내용 입력..." disabled onpaste="return false;" autocomplete="off">
+                <button class="btn-send" id="btnSend">전송</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar-right">
+        <div class="dashboard-card timer-box">
+            <div style="font-size: 0.9rem; color: #7f8c8d;">퇴근까지 남은 시간</div>
+            <div class="timer" id="gameTimer">60</div>
+        </div>
+
+        <div class="dashboard-card">
+            <div style="font-size: 0.9rem; margin-bottom: 10px; font-weight: bold; color:#e74c3c;">⚠️ 필수 생존 미션 (미수행 시 건강 악화)</div>
+            <button class="task-btn btn-toilet" id="btnToilet" onclick="doPersonalTask('toilet', 5)">
+                <span>🚽 화장실 (5초)</span> <span class="check-mark">✅</span>
+            </button>
+            <button class="task-btn btn-water" id="btnWater" onclick="doPersonalTask('water', 3)">
+                <span>💧 물 마시기 (3초)</span> <span class="check-mark">✅</span>
+            </button>
+            <button class="task-btn btn-meal" id="btnMeal" onclick="doPersonalTask('meal', 5)">
+                <span>🍙 식사 (5초)</span> <span class="check-mark">✅</span>
+            </button>
+        </div>
+
+        <div class="dashboard-card">
+            <div style="font-size: 0.9rem; margin-bottom: 5px;">실적 현황</div>
+            <div>✅ 해결: <span id="scoreResolved" style="font-weight:bold; color: #2ecc71">0</span></div>
+            <div>😡 불만: <span id="scoreAngry" style="font-weight:bold; color: #e74c3c">0</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="overlay" id="taskOverlay">
+    <h2 id="taskTitle">업무 중단...</h2>
+    <div class="progress-bar"><div class="progress-fill" id="taskProgress"></div></div>
+    <p style="margin-top:15px; font-size: 0.9rem; color: #ccc;">(고객 채팅은 계속 쌓이고 있습니다)</p>
+</div>
+
+<div class="overlay" id="resultOverlay">
+    <div class="overlay-content">
+        <h2 id="resultTitle">업무 종료</h2>
+        <div id="resultBadge" class="result-badge"></div>
+        <p style="margin: 20px 0; line-height: 1.6;" id="resultDesc"></p>
+        
+        <div style="text-align: left; background: #f1f1f1; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+            <div>✅ 처리 실적: <span id="finalScore">0</span>건</div>
+            <div>😡 불만 건수: <span id="finalAngry">0</span>건</div>
+            <div>❤️ 생존 미션: <span id="finalTasks">0</span>/3 완료</div>
+        </div>
+        <button class="task-btn" style="background: #2c3e50; justify-content: center;" onclick="location.reload()">다시 출근하기</button>
+    </div>
+</div>
+
+<script>
+    // === GAME CONFIGURATION ===
+    const SETTINGS = {
+        easy: { time: 60, spawnRate: 4000, decay: 0.8, maxActive: 2, totalLimit: 5 },
+        normal: { time: 60, spawnRate: 3000, decay: 1.2, maxActive: 4, totalLimit: 999 },
+        hard: { time: 60, spawnRate: 2000, decay: 1.8, maxActive: 6, totalLimit: 999 }
+    };
+    
+    const SCENARIOS = [
+        { type: "배달지연", names: ["김성격", "이급해", "박재촉"], start: ["배달 언제 와요?", "1시간 지났어요.", "배달 출발은 했나요?"], steps: [{t: "주문 정보 확인해 보겠습니다.", r: "빨리 좀 보세요."}, {t: "기사님 위치 확인 중입니다.", r: "아 현기증 나요."}, {t: "죄송합니다. 5분 내 도착 예정입니다.", r: "알겠습니다."}] },
+        { type: "음식누락", names: ["최콜라", "정단무지", "강소스"], start: ["사이드 메뉴가 안 왔어요.", "콜라 빠졌는데요?", "소스가 없어요."], steps: [{t: "불편 드려 죄송합니다.", r: "어떻게 하실 거예요?"}, {t: "매장 확인 후 재배달 해드리겠습니다.", r: "지금 당장 필요하다고요."}, {t: "신속하게 보내드리겠습니다.", r: "네 알겠습니다."}] },
+        { type: "주소변경", names: ["한이사", "오전입", "장실수"], start: ["주소지 변경 가능한가요?", "회사로 시켰는데 집으로 바꿀래요.", "주소를 잘못 적었어요."], steps: [{t: "주문 번호 확인해 보겠습니다.", r: "네 빨리요."}, {t: "변경할 주소지 말씀해 주세요.", r: "서울시 강남구..."}, {t: "주소 변경 완료되었습니다.", r: "감사합니다."}] }
+    ];
+
+    const GREETING_STARTS = ["안녕하세요.", "저기요.", "상담원분?"];
+    const ANGRY_TEXTS = ["답변 안 하세요?", "듣고 있어요?", "사람 있나요?", "장난하세요?", "아 답답해"];
+
+    let state = {
+        isPlaying: false, difficulty: 'normal', time: 60, decayRate: 1.0,
+        customers: [], activeId: null, totalSpawned: 0,
+        score: { resolved: 0, angry: 0 }, tasks: { toilet: false, water: false, meal: false },
+        intervals: []
+    };
+
+    const els = {
+        entry: document.getElementById('entryScreen'), game: document.getElementById('gameScreen'),
+        list: document.getElementById('chatList'), window: document.getElementById('chatWindow'),
+        input: document.getElementById('userInput'), target: document.getElementById('scriptTarget'),
+        timer: document.getElementById('gameTimer'), resTitle: document.getElementById('resultTitle'),
+        resDesc: document.getElementById('resultDesc'), resBadge: document.getElementById('resultBadge')
+    };
+
+    function startGame(difficulty) {
+        els.entry.classList.add('hidden');
+        els.game.classList.remove('hidden');
+
+        state.difficulty = difficulty;
+        const setting = SETTINGS[difficulty];
+        state.time = setting.time;
+        state.decayRate = setting.decay;
+        state.isPlaying = true;
+        state.totalSpawned = 0;
+
+        spawnCustomer(); 
+        
+        state.intervals.push(setInterval(gameLoop, 100));
+        state.intervals.push(setInterval(spawnCustomer, setting.spawnRate));
+
+        els.input.disabled = false;
+        els.input.focus();
+        updateTimer();
+    }
+
+    function gameLoop() {
+        if (!state.isPlaying) return;
+        state.time -= 0.1;
+        updateTimer();
+        if (state.time <= 0) endGame();
+
+        state.customers.forEach(c => {
+            if (c.done) return;
+            c.patience -= 0.1 * state.decayRate;
+
+            if (c.patience < 50 && !c.angry && Math.random() < 0.01) {
+                addMsg(c.id, 'customer', ANGRY_TEXTS[Math.floor(Math.random() * ANGRY_TEXTS.length)], true);
+            }
+            if (c.patience <= 0) failCustomer(c);
+        });
+        
+        // [중요 수정] 리스트 전체를 다시 그리지 않고, 게이지바 스타일만 업데이트합니다.
+        updatePatienceBars();
+    }
+
+    // [신규 함수] 게이지바만 부드럽게 업데이트
+    function updatePatienceBars() {
+        state.customers.forEach(c => {
+            const bar = document.getElementById(`bar-${c.id}`);
+            if (bar) {
+                bar.style.width = Math.max(0, c.patience) + '%';
+                bar.style.background = c.patience > 50 ? '#2ecc71' : '#e74c3c';
+            }
+        });
+    }
+
+    function spawnCustomer() {
+        const setting = SETTINGS[state.difficulty];
+        if (state.customers.filter(c => !c.done).length >= setting.maxActive) return;
+        if (state.totalSpawned >= setting.totalLimit) return;
+
+        state.totalSpawned++;
+        const s = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
+        let steps = JSON.parse(JSON.stringify(s.steps));
+        let startMsg = s.start[Math.floor(Math.random() * s.start.length)];
+        
+        const isGreetingStart = Math.random() < 0.5;
+        if (isGreetingStart) {
+            steps.unshift({ t: "안녕하세요. 무엇을 도와드릴까요?", r: startMsg });
+            startMsg = GREETING_STARTS[Math.floor(Math.random() * GREETING_STARTS.length)];
+        } else {
+            steps[0].t = "안녕하세요. " + steps[0].t;
+        }
+
+        const newC = {
+            id: Date.now() + Math.random(),
+            name: s.names[Math.floor(Math.random() * s.names.length)],
+            type: s.type, steps: steps, stepIdx: 0,
+            patience: 100, msgs: [{ sender: 'customer', text: startMsg, angry: false }],
+            angry: false, done: false
+        };
+
+        state.customers.push(newC);
+        if (!state.activeId) selectCustomer(newC.id);
+        
+        // [중요] 구조가 바뀔 때만 리스트를 다시 그립니다.
+        renderChatList();
+    }
+
+    function selectCustomer(id) {
+        state.activeId = id;
+        els.input.value = "";
+        els.input.classList.remove('error');
+        els.input.disabled = false;
+        els.input.focus();
+        
+        renderChatList(); // 선택 상태 변경을 위해 다시 그림
+        renderChatWindow();
+    }
+
+    function failCustomer(c) {
+        if (c.done) return;
+        c.done = true;
+        c.angry = true;
+        state.score.angry++;
+        addMsg(c.id, 'customer', "아 됐어요. 상담 종료합니다.", true);
+        addMsg(c.id, 'system', "상담 실패 (불만 접수됨)");
+        updateDashboard();
+        if (state.activeId === c.id) renderChatWindow();
+    }
+
+    function renderChatList() {
+        els.list.innerHTML = "";
+        state.customers.forEach(c => {
+            if (c.done && state.activeId !== c.id) return;
+            
+            const div = document.createElement('div');
+            div.className = `chat-item ${state.activeId === c.id ? 'active' : ''}`;
+            if (c.patience < 30 && !c.done) div.classList.add('alert');
+            
+            const color = c.patience > 50 ? '#2ecc71' : '#e74c3c';
+            
+            div.innerHTML = `
+                <div style="font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
+                    <span>${c.name}</span>
+                    <span class="badge-type">${c.type}</span>
+                </div>
+                <div style="font-size:0.8rem; color:#bdc3c7; margin:5px 0;">${c.msgs[c.msgs.length-1].text.substring(0,18)}...</div>
+                <div class="patience-track"><div id="bar-${c.id}" class="patience-bar" style="width:${Math.max(0, c.patience)}%; background:${color}"></div></div>
+            `;
+            
+            div.onclick = () => selectCustomer(c.id);
+            els.list.appendChild(div);
+        });
+    }
+
+    function renderChatWindow() {
+        const c = state.customers.find(x => x.id === state.activeId);
+        if (!c) {
+            els.window.innerHTML = '<div class="bubble system">왼쪽 목록에서 고객을 선택하세요.</div>';
+            document.getElementById('currentCustomerName').innerText = "대기 중";
+            document.getElementById('currentStatus').innerText = "-";
+            els.target.innerText = "...";
+            return;
+        }
+
+        document.getElementById('currentCustomerName').innerText = `${c.name} 고객님`;
+        document.getElementById('currentStatus').innerText = c.type;
+
+        els.window.innerHTML = "";
+        c.msgs.forEach(m => {
+            const b = document.createElement('div');
+            b.className = `bubble ${m.sender} ${m.angry ? 'angry' : ''}`;
+            b.innerText = m.text;
+            els.window.appendChild(b);
+        });
+        els.window.scrollTop = els.window.scrollHeight;
+
+        if (c.done) {
+            els.target.innerText = c.angry ? "실패한 상담입니다." : "완료된 상담입니다.";
+            els.input.disabled = true;
+        } else {
+            els.target.innerText = c.steps[c.stepIdx].t;
+            els.input.disabled = false;
+        }
+    }
+
+    function updateTimer() {
+        els.timer.innerText = Math.ceil(state.time);
+        if (state.time < 10) els.timer.classList.add('danger');
+    }
+
+    function updateDashboard() {
+        document.getElementById('scoreResolved').innerText = state.score.resolved;
+        document.getElementById('scoreAngry').innerText = state.score.angry;
+    }
+
+    els.input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const c = state.customers.find(x => x.id === state.activeId);
+            if (!c || c.done) return;
+
+            const target = c.steps[c.stepIdx].t.replace(/\s/g, ''); 
+            const input = els.input.value.trim().replace(/\s/g, '');
+
+            if (target === input) {
+                addMsg(c.id, 'agent', c.steps[c.stepIdx].t);
+                els.input.value = "";
+                c.patience = Math.min(100, c.patience + 20); 
+                c.stepIdx++;
+                if (c.stepIdx >= c.steps.length) {
+                    c.done = true;
+                    state.score.resolved++;
+                    addMsg(c.id, 'system', "상담 완료 (평점 5점)");
+                    updateDashboard();
+                } else {
+                    setTimeout(() => {
+                        if(!c.done && !c.angry) addMsg(c.id, 'customer', c.steps[c.stepIdx-1].r);
+                    }, 600);
+                }
+            } else {
+                els.input.classList.add('error');
+                setTimeout(() => els.input.classList.remove('error'), 300);
+            }
+        }
+    });
+
+    document.getElementById('btnSend').addEventListener('click', () => {
+        const event = new KeyboardEvent('keydown', { key: 'Enter' });
+        els.input.dispatchEvent(event);
+    });
+
+    function addMsg(id, sender, text, angry = false) {
+        const c = state.customers.find(x => x.id === id);
+        if (c) {
+            c.msgs.push({ sender, text, angry });
+            if (state.activeId === id) renderChatWindow();
+            renderChatList(); 
+        }
+    }
+
+    window.doPersonalTask = function(type, duration) {
+        if (!state.isPlaying || state.tasks[type]) return;
+        state.tasks[type] = true;
+        const btn = document.getElementById('btn' + type.charAt(0).toUpperCase() + type.slice(1));
+        btn.classList.add('done');
+        btn.disabled = true;
+
+        const overlay = document.getElementById('taskOverlay');
+        const bar = document.getElementById('taskProgress');
+        document.getElementById('taskTitle').innerText = 
+            type === 'toilet' ? "화장실 다녀오는 중..." : type === 'water' ? "수분 보충 중..." : "식사 중...";
+
+        overlay.classList.add('active');
+        bar.style.transition = `width ${duration}s linear`;
+        els.input.disabled = true;
+        setTimeout(() => bar.style.width = "100%", 50);
+
+        setTimeout(() => {
+            overlay.classList.remove('active');
+            bar.style.width = "0%";
+            bar.style.transition = 'none';
+            els.input.disabled = false;
+            els.input.focus();
+        }, duration * 1000);
+    };
+
+    function endGame() {
+        state.isPlaying = false;
+        state.intervals.forEach(clearInterval);
+        document.getElementById('resultOverlay').classList.add('active');
+        
+        const tasksCount = Object.values(state.tasks).filter(Boolean).length;
+        const { resolved, angry } = state.score;
+        document.getElementById('finalScore').innerText = resolved;
+        document.getElementById('finalAngry').innerText = angry;
+        document.getElementById('finalTasks').innerText = tasksCount;
+
+        if (angry >= resolved && angry > 0) {
+            els.resTitle.innerText = "때려치울까";
+            els.resBadge.innerText = "Bad Ending";
+            els.resBadge.className = "result-badge badge-bad";
+            els.resDesc.innerHTML = "고객 불만이 늘어 근무하기가 힘 드네요...<br>팀장님이 면담을 요청합니다.";
+        } else if (tasksCount < 3) {
+            els.resTitle.innerText = "건강 악화";
+            els.resBadge.innerText = "Sad Ending";
+            els.resBadge.className = "result-badge badge-warn";
+            els.resDesc.innerHTML = "열심히 일했지만, 발병 나겠네요.<br>결국 병가를 내고 입원했습니다.";
+        } else {
+            els.resTitle.innerText = "이달의 우수 사원";
+            els.resBadge.innerText = "Happy Ending";
+            els.resBadge.className = "result-badge badge-good";
+            els.resDesc.innerHTML = "완벽한 일처리! 건강도 챙기고 고객도 만족시켰습니다.<br>보너스와 함께 칼퇴근 하세요!";
+        }
+    }
+</script>
+
+</body>
+</html>
