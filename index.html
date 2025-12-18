@@ -340,6 +340,13 @@
 </div>
 
 <script>
+    // === SOUNDS CONFIGURATION ===
+    // 소리 파일 경로를 정확히 맞춰주세요!
+    const audio = {
+        toilet: new Audio('sounds/flush.mp3'),
+        water: new Audio('sounds/drink.mp3'),
+        meal: new Audio('sounds/eat.mp3'),
+    };
     // === GAME CONFIGURATION ===
     const SETTINGS = {
         easy: { time: 180, spawnRate: 4000, decay: 0.8, maxActive: 2, totalLimit: 10 },
@@ -731,6 +738,10 @@
 
     window.doPersonalTask = function(type, duration) {
         if (!state.isPlaying) return;
+
+        if (type === 'toilet') audio.toilet.play();
+        if (type === 'water') audio.water.play();
+        if (type === 'meal') audio.meal.play();
         
         if (type === 'manager') {
             state.managerTaskDone = true;
