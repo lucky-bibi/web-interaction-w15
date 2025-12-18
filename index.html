@@ -273,7 +273,7 @@
         </div>
 
         <div class="dashboard-card">
-            <div style="font-size: 0.9rem; margin-bottom: 10px; font-weight: bold; color:#e74c3c;">⚠️ 권장 미션 (건강 관리)</div>
+            <div style="font-size: 0.9rem; margin-bottom: 10px; font-weight: bold; color:#e74c3c;">⚠️ 권장 미션: 건강을 위해 수행해 주세요.</div>
             <button class="task-btn btn-toilet" id="btnToilet" onclick="doPersonalTask('toilet', 5)">
                 <span>🚽 화장실 (5초)</span> <span class="check-mark">✅</span>
             </button>
@@ -281,7 +281,7 @@
                 <span>💧 물 마시기 (3초)</span> <span class="check-mark">✅</span>
             </button>
             <button class="task-btn btn-meal" id="btnMeal" onclick="doPersonalTask('meal', 5)">
-                <span>🍙 식사 (5초)</span> <span class="check-mark">✅</span>
+                <span>🍚 식사 (5초)</span> <span class="check-mark">✅</span>
             </button>
         </div>
 
@@ -495,7 +495,7 @@
             const apologyText = "많이 불편하셨죠. 정말 죄송합니다.";
             addMsg(c.id, 'agent', apologyText);
             c.patience = Math.min(100, c.patience + 15);
-            addMsg(c.id, 'system', "❤️ 고객님이 양해해 주셨습니다.");
+            addMsg(c.id, 'system', "❤️ 고객님께서 양해해 주셨습니다. 신속히 안내해 주세요.");
             return;
         }
 
@@ -676,9 +676,9 @@
             
             const rand = Math.random();
             let ratingMsg = "";
-            if (rand < 0.7) ratingMsg = "(평점: ⭐ - 1개)"; 
-            else if (rand < 0.9) ratingMsg = "(평점 없음)"; 
-            else ratingMsg = "(평점: ⭐⭐⭐⭐⭐ - 5개)"; 
+            if (rand < 0.3) ratingMsg = "(만족도: ⭐ 1점)"; 
+            else if (rand < 0.8) ratingMsg = "(만족도 응답 없음)"; 
+            else ratingMsg = "(만족도: ⭐⭐⭐⭐⭐ 5점)"; 
 
             addMsg(c.id, 'system', `상담 완료 ${ratingMsg}`);
             updateDashboard();
